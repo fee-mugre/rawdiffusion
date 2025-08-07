@@ -1,0 +1,8 @@
+defaults:
+- base
+- _self_
+
+data_dir: data/SID
+camera_name: SonyA7S2
+file_list: Sony_train_long.txt
+batch_size: 4
