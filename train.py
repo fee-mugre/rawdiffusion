@@ -312,7 +312,7 @@ class RAWDiffusionModule(LightningModule):
         data = rggb_to_rgb(data)
 
         data = (data + 1) / 2.0
-        data = data.clamp(0, None)**gamma
+        data = data**gamma
         data = data * 2 - 1
 
         return data

@@ -1,0 +1,85 @@
+dataset:
+  train:
+    is_train: true
+    min_mode: ${general.min_mode}
+    max_items: null
+    resample_dataset_size: null
+    data_dir: data/SID
+    camera_name: SonyA7S2
+    file_list: Sony_train_long.txt
+    batch_size: 4
+  val:
+    is_train: false
+    resample_dataset_size: null
+    min_mode: ${general.min_mode}
+    data_dir: data/SID
+    camera_name: SonyA7S2
+    file_list: Sony_test_long.txt
+    batch_size: 4
+model:
+  rgb_guidance_module:
+    _target_: rawdiffusion.models.rgb_guidance_module.edsr.EDSR
+    _partial_: true
+    n_resblocks: 4
+    n_feats: 64
+    bn: false
+  _target_: rawdiffusion.models.rawdiffusion.RAWDiffusionModel
+  model_channels: 32
+  num_res_blocks: 2
+  num_heads: 4
+  num_heads_upsample: -1
+  num_head_channels: 64
+  attention_resolutions: 32,16
+  channel_mult: ''
+  dropout: 0.0
+  use_checkpoint: true
+  use_scale_shift_norm: true
+  resblock_updown: true
+  use_new_attention_order: false
+  in_channels: 4
+  out_channels: 4
+  mid_attention: true
+  c_channels: 64
+  out_tanh: true
+  latent_drop_rate: 0.0
+  conditional_block_name: RGBGuidedResidualBlock
+  norm_num_groups: 8
+general:
+  lr_scheduler: linear
+  lr: 0.0001
+  weight_decay: 0.0
+  schedule_sampler: uniform
+  max_steps: 70000
+  drop_rate: 0.0
+  save_interval: 1000
+  checkpoint: true
+  suffix: null
+  weight_l2: 0.5
+  weight_l1: 1.0
+  weight_logl1: 0.3
+  check_val_every_n_epoch: 1
+  eval_diffusion_process_interval: 5
+  log_train_images_interval: 500
+  val_sampling_frequency: 20
+  log_val_sampling_images_interval: 4
+  min_mode: black_level
+  seed: 0
+  image_size: 512
+diffusion:
+  learn_sigma: false
+  steps: 1000
+  noise_schedule: linear
+  timestep_respacing: ''
+  use_kl: false
+  predict_xstart: true
+  rescale_timesteps: false
+  rescale_learned_sigmas: false
+diffusion_val:
+  learn_sigma: ${diffusion.learn_sigma}
+  steps: ${diffusion.steps}
+  noise_schedule: ${diffusion.noise_schedule}
+  timestep_respacing: ddim24
+  use_kl: ${diffusion.use_kl}
+  predict_xstart: ${diffusion.predict_xstart}
+  rescale_timesteps: ${diffusion.rescale_timesteps}
+  rescale_learned_sigmas: ${diffusion.rescale_learned_sigmas}

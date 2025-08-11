@@ -1,0 +1,3 @@
+[2025-08-10 03:58:02,372][aim.sdk.reporter][INFO] - creating RunStatusReporter for 7cb83640eff649d28520307a
+[2025-08-10 03:58:02,373][aim.sdk.reporter][INFO] - starting from: {}
+[2025-08-10 03:58:02,373][aim.sdk.reporter][INFO] - starting writer thread for <aim.sdk.reporter.RunStatusReporter object at 0x7f5dfdc0a950>

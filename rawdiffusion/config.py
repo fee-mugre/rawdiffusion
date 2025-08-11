@@ -1,7 +1,7 @@
 def mod_config(cfg):
     if cfg.model.channel_mult == "":
         if cfg.general.image_size == 512:
-            cfg.model.channel_mult = (0.5, 1, 1, 2, 2, 4)
+            cfg.model.channel_mult = (1, 1, 2, 2, 4, 4)
         elif cfg.general.image_size == 256:
             cfg.model.channel_mult = (1, 1, 2, 2, 4, 4)
         elif cfg.general.image_size == 128:

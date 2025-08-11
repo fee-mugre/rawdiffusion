@@ -347,12 +347,12 @@ class SID_Dataset(Dataset):
         self.data_rgb_dir = "/root/WorkSpace/DataSet/SID/Sony/long_rgb"
 
         ## load pmn's darkshading
-        with open(f"/root/WorkSpace/raw_image_denoising-main/resources/SonyA7S2/darkshading_BLE.pkl", "rb") as f:
+        with open(f"/root/WorkSpace/CVPR25/resources/SonyA7S2/darkshading_BLE.pkl", "rb") as f:
             self.pmn_ble = pkl.load(f)
-        self.pmn_dsk_high = np.load(f"/root/WorkSpace/raw_image_denoising-main/resources/SonyA7S2/darkshading_highISO_k.npy")
-        self.pmn_dsk_low = np.load(f"/root/WorkSpace/raw_image_denoising-main/resources/SonyA7S2/darkshading_lowISO_k.npy")
-        self.pmn_dsb_high = np.load(f"/root/WorkSpace/raw_image_denoising-main/resources/SonyA7S2/darkshading_highISO_b.npy")
-        self.pmn_dsb_low = np.load(f"/root/WorkSpace/raw_image_denoising-main/resources/SonyA7S2/darkshading_lowISO_b.npy")
+        self.pmn_dsk_high = np.load(f"/root/WorkSpace/CVPR25/resources/SonyA7S2/darkshading_highISO_k.npy")
+        self.pmn_dsk_low = np.load(f"/root/WorkSpace/CVPR25/resources/SonyA7S2/darkshading_lowISO_k.npy")
+        self.pmn_dsb_high = np.load(f"/root/WorkSpace/CVPR25/resources/SonyA7S2/darkshading_highISO_b.npy")
+        self.pmn_dsb_low = np.load(f"/root/WorkSpace/CVPR25/resources/SonyA7S2/darkshading_lowISO_b.npy")
 
         ## format data pairs
         if train:
