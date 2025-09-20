@@ -19,6 +19,7 @@ cameras = [
     Camera("NOD", "Nikon750", min_value=284, black_level=600, white_level=16383),
     Camera("NOD", "SonyRX100m7", min_value=0, black_level=800, white_level=16380),
     Camera("SID", "SonyA7S2", min_value=0, black_level=512, white_level=16383),
+    Camera("SICE", "SonyA7S2", min_value=0, black_level=512, white_level=16383),
 ]
 
 

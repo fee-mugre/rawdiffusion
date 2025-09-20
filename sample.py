@@ -187,6 +187,10 @@ def main(cfg: DictConfig) -> None:
                         samples.append(sample)
 
             sample = (sample + 1) / 2.0
+
+            # fn = batch['path'][0]
+            # np.save(os.path.join("/root/WorkSpace/DataSet/SICE/raw_patches", f"{fn}.npy"), sample.cpu().squeeze(0).numpy())
+
             raw_data = (raw_data + 1) / 2.0
             samples = [(sample + 1) / 2.0 for sample in samples]
             noise = (noise + 1) / 2.0
@@ -209,11 +213,11 @@ def main(cfg: DictConfig) -> None:
 
             for j in range(sample.shape[0]):
                 fn = batch["path"][j]
-                # rel_path = batch["path"][j]
+                rel_path = batch["path"][j]
 
-                # if os.path.isabs(rel_path):
-                #     rel_path = os.path.basename(rel_path)
-                # fn = os.path.splitext(rel_path)[0]
+                if os.path.isabs(rel_path):
+                    rel_path = os.path.basename(rel_path)
+                fn = os.path.splitext(rel_path)[0]
 
                 if torch.isnan(sample_rgb[j]).any():
                     print("sample is nan. skipping")
@@ -254,7 +258,7 @@ def main(cfg: DictConfig) -> None:
                             )
                     else:
                         pred_np_path = os.path.join(
-                            inference_output_path, fn + "_pred.npy"
+                            inference_output_path, fn + ".npy"
                         )
                         create_folder_for_file(pred_np_path)
                         np.save(pred_np_path, sample_np[j].transpose(1, 2, 0))

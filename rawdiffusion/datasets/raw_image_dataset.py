@@ -416,3 +416,190 @@ class SID_Dataset(Dataset):
         }
 
         return data
+
+
+class SICE_Dataset(Dataset):
+    def __init__(self, transforms=None, train=True, wl=16383, bl=512, clip_low=False, clip_high=True):
+        super().__init__()
+        self.transforms = transforms
+        self.wl, self.bl = wl, bl
+        self.clip_low = 0 if clip_low else float("-inf")
+        self.clip_high = 1 if clip_high else float("inf")
+        self.data_raw_dir = None
+        # self.data_rgb_dir = "./data/SICE/label"
+        self.data_rgb_dir = "./data/SID/Sony/long_rgb"
+
+        # load pmn's darkshading
+        with open(f"/root/WorkSpace/CVPR25/resources/SonyA7S2/darkshading_BLE.pkl", "rb") as f:
+            self.pmn_ble = pkl.load(f)
+        self.pmn_dsk_high = np.load(f"/root/WorkSpace/CVPR25/resources/SonyA7S2/darkshading_highISO_k.npy")
+        self.pmn_dsk_low = np.load(f"/root/WorkSpace/CVPR25/resources/SonyA7S2/darkshading_lowISO_k.npy")
+        self.pmn_dsb_high = np.load(f"/root/WorkSpace/CVPR25/resources/SonyA7S2/darkshading_highISO_b.npy")
+        self.pmn_dsb_low = np.load(f"/root/WorkSpace/CVPR25/resources/SonyA7S2/darkshading_lowISO_b.npy")
+
+        # format data pairs
+        # with open(f"./data/SICE/SICE_test_or.txt", "r") as info_file:
+        #     self.data_info = info_file.read().splitlines()
+        with open(f"./data/SID/Sony_train_long_or.txt", "r") as info_file:
+            self.data_info = info_file.read().splitlines()
+
+        self.cache = {}
+        for idx in tqdm(range(len(self.data_info))):
+            self.cache[idx]= np.load(os.path.join(self.data_rgb_dir, self.data_info[idx]))
+
+    def __len__(self):
+        return len(self.data_info)
+
+    def get_darkshading(self, iso):
+        if iso <= 1600:
+            return self.pmn_dsk_low * iso + self.pmn_dsb_low + self.pmn_ble[iso]
+        else:
+            return self.pmn_dsk_high * iso + self.pmn_dsb_high + self.pmn_ble[iso]
+
+    def pack_raw(self, img, norm=False, clip=False):
+        out = np.stack([img[0::2, 0::2], img[0::2, 1::2], img[1::2, 0::2], img[1::2, 1::2]], axis=0)
+        out = (out - self.bl) / (self.wl - self.bl) if norm else out
+        out = np.clip(out, 0, 1) if clip else out
+        return out.astype(np.float32)
+
+    def np2tensor(self, array):
+        return torch.FloatTensor(array)
+
+    def init_random_crop_point(self, image_shape=None, mode='non-overlapped', raw_crop=False):
+        self.h_start = []
+        self.w_start = []
+        self.h_end = []
+        self.w_end = []
+
+        self.aug = np.random.randint(4, size=8)
+        h, w = image_shape[1], image_shape[2]
+
+        if mode== 'non-overlapped':
+            nh = h // 512
+            nw = w // 512
+            h_start = np.random.randint(0, h - nh * 512 + 1)
+            w_start = np.random.randint(0, w - nw * 512 + 1)
+
+            for i in range(nh):
+                for j in range(nw):
+                    self.h_start.append(h_start + i * 512)
+                    self.w_start.append(w_start + j * 512)
+                    self.h_end.append(h_start + (i + 1) * 512)
+                    self.w_end.append(w_start + (j + 1) * 512)
+        else: # random crop
+            for i in range(self.args['crop_per_image']):
+                h_start = np.random.randint(0, h - self.args['patch_size'] + 1)
+                w_start = np.random.randint(0, w - self.args['patch_size'] + 1)
+                self.h_start.append(h_start)
+                self.w_start.append(w_start)
+                self.h_end.append(h_start + self.args['patch_size'])
+                self.w_end.append(w_start + self.args['patch_size'])
+    
+    def random_crop(self, img):
+        # 本函数用于将numpy随机裁剪成以crop_size为边长的方形crop_per_image等份
+        c, h, w = img.shape
+        # 创建空numpy做画布, [crops, h, w]
+        crops = np.empty((self.args["crop_per_image"], c, self.args["patch_size"], self.args["patch_size"]), dtype=np.float32)
+        # 往空tensor的通道上贴patchs
+        for i in range(self.args["crop_per_image"]):
+            crop = img[:, self.h_start[i]:self.h_end[i], self.w_start[i]:self.w_end[i]]
+            crop = self.data_aug(crop, mode=self.aug[i])
+            crops[i] = crop
+
+        return crops
+
+    def adjust_to_divisible(
+        img_np,  # 支持OpenCV(numpy)或PIL图像
+        divisor: int = 32,
+        mode: str = "crop",  # "crop"或"pad"
+        pad_value: int = 0,   # 填充值（灰度图为0-255，RGB为(B,G,R)）
+        return_params: bool = False  # 是否返回裁剪/填充参数
+    ) :
+        """
+        调整图像尺寸使其长宽可被divisor整除
+        
+        参数:
+            img: 输入图像(numpy数组或PIL Image)
+            divisor: 整除目标数（默认32）
+            mode: 调整模式 - "crop"(裁剪) 或 "pad"(填充)
+            pad_value: 填充像素值（默认0）
+            return_params: 是否返回调整参数
+            
+        返回:
+            调整后的图像，或（图像+裁剪/填充参数）
+        """
+        h, w = img_np.shape[:2]
+        params = None  # (y1, y2, x1, x2) 或 (top, bottom, left, right)
+        
+        # 计算需要调整的像素数
+        h_remainder = h % divisor
+        w_remainder = w % divisor
+        
+        if h_remainder == 0 and w_remainder == 0:
+            if return_params:
+                return img_np, (0, h, 0, w) if mode == "crop" else (0, 0, 0, 0)
+            return img_np
+        
+        if mode == "crop":
+            # 计算裁剪区域（居中裁剪）
+            y1 = h_remainder // 2
+            y2 = y1 + (h - h_remainder)
+            x1 = w_remainder // 2
+            x2 = x1 + (w - w_remainder)
+            img_adjusted = img_np[y1:y2, x1:x2]
+            params = (y1, y2, x1, x2)
+        else:
+            # 计算填充量（对称填充）
+            pad_top = (divisor - h_remainder) // 2 if h_remainder != 0 else 0
+            pad_bottom = (divisor - h_remainder - pad_top) if h_remainder != 0 else 0
+            pad_left = (divisor - w_remainder) // 2 if w_remainder != 0 else 0
+            pad_right = (divisor - w_remainder - pad_left) if w_remainder != 0 else 0
+            
+            # 处理不同通道数的填充值
+            if len(img_np.shape) == 2:
+                pad_value = pad_value if isinstance(pad_value, int) else 0
+            else:
+                pad_value = pad_value if isinstance(pad_value, (list, tuple)) else [pad_value]*3
+            
+            img_adjusted = cv2.copyMakeBorder(
+                img_np, pad_top, pad_bottom, pad_left, pad_right,
+                cv2.BORDER_CONSTANT, value=pad_value
+            )
+            params = (pad_top, pad_bottom, pad_left, pad_right)
+    
+    def __getitem__(self, idx):
+        # load data
+        rgb_data = self.cache[idx].transpose(2, 0, 1) / 255
+
+        # name = self.data_info[idx][:12] + '.npy'
+        name = self.data_info[idx][:12] + '.ARW'
+        # hr_raw = self.cache[idx]['im']
+
+        ## subtract dark shading
+        # c, h, w = hr_raw.shape
+        # x, y = int(self.cache[idx]['crop_x']), int(self.cache[idx]['crop_y'])
+        # hr_raw = hr_raw - self.pack_raw(self.get_darkshading(int(self.cache[idx]["iso"])))[:, x:x + h, y:y + w]
+        # hr_raw = (hr_raw - self.bl) / (self.wl - self.bl)
+        # hr_raw = np.clip(hr_raw, 0, 1)
+
+        # rgb_data = np.load(os.path.join(self.data_rgb_dir, name)) / 255
+        # raw_data = hr_raw.transpose(1, 2, 0)
+        # raw_data = np.zeros((4, rgb_data.shape[1], rgb_data.shape[2]))
+        raw_data = self.pack_raw(rawpy.imread(os.path.join('/root/WorkSpace/rawdiffusion/data/SID/Sony/long', name)).raw_image_visible, norm=True, clip=True)
+
+        if self.transforms is not None:
+            raw_data, rgb_data = self.transforms(raw_data, rgb_data)
+
+        raw_data = self.np2tensor(raw_data)
+        rgb_data = self.np2tensor(rgb_data)
+
+        raw_data = raw_data * 2 - 1
+        rgb_data = rgb_data * 2 - 1
+
+        data = {
+            "raw_data": raw_data,
+            "guidance_data": rgb_data,
+            "path": f"{os.path.splitext(self.data_info[idx])[0]}",
+        }
+
+        return data

@@ -10,14 +10,14 @@
             "type": "debugpy",
             "cwd": "${workspaceFolder}",
             "request": "launch",
-            "program": "${workspaceFolder}/train.py",
+            "program": "${workspaceFolder}/sample.py",
             "console": "integratedTerminal", 
             "args": [
                 "dataset=sid_sony",
                 "general.seed=0",
             ],
             "env": {
-                "CUDA_VISIBLE_DEVICES": "5",
+                "CUDA_VISIBLE_DEVICES": "6",
                 "PYTHONPATH": "${workspaceFolder}:${env:PYTHONPATH}",
             }
         }

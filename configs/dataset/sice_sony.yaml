@@ -1,0 +1,4 @@
+defaults:
+- train: sice_sony
+- val: sice_sony
+- _self_

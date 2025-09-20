@@ -2,7 +2,7 @@ import os
 
 from torch.utils.data import DataLoader
 from rawdiffusion.datasets.transforms import ImageTransforms
-from .raw_image_dataset import RAWImageDataset, SID_Dataset
+from .raw_image_dataset import RAWImageDataset, SID_Dataset, SICE_Dataset
 from rawdiffusion.datasets.camera import get_camera
 
 
@@ -37,7 +37,7 @@ def create_dataset(
 
     assert min_mode in ["min_value", "black_level"]
 
-    if dataset_name in ["fivek", "nod", "sid"]:
+    if dataset_name in ["fivek", "nod", "sid", "sice"]:
         camera = get_camera(dataset_name, camera_name)
         if camera is None:
             raise ValueError(f"unknown camera_name: {camera_name}")
@@ -97,6 +97,10 @@ def create_dataset(
     elif "sid" in dataset_folder_name:
         dataset = SID_Dataset(
             transforms=transforms, train=is_train,
+        )
+    elif "sice" in dataset_folder_name:
+        dataset = SICE_Dataset(
+            transforms=transforms, train=is_train
         )
     else:
         raise ValueError(f"unknown dataset_folder_name: {dataset_folder_name}")

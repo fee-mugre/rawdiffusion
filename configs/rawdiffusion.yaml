@@ -15,9 +15,9 @@ general:
   checkpoint: true
   suffix: null
 
-  weight_l2: 0.5
+  weight_l2: 1.0
   weight_l1: 1.0
-  weight_logl1: 1.2
+  weight_logl1: 1.0
 
   check_val_every_n_epoch: 1
   eval_diffusion_process_interval: 5
@@ -38,8 +38,8 @@ model:
   num_heads: 4
   num_heads_upsample: -1
   num_head_channels: 64
-  attention_resolutions: "16,8"
-  channel_mult: "1, 1, 2, 2, 4, 4"
+  attention_resolutions: "32,16"
+  channel_mult: "1,1,2,2,4"
   dropout: 0.0
   use_checkpoint: True
   use_scale_shift_norm: True
@@ -73,7 +73,6 @@ diffusion_val:
   predict_xstart: ${diffusion.predict_xstart}
   rescale_timesteps: ${diffusion.rescale_timesteps}
   rescale_learned_sigmas: ${diffusion.rescale_learned_sigmas}
-
 
 hydra:
   launcher:

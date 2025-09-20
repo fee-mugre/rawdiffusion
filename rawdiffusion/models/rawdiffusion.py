@@ -275,6 +275,6 @@ class RAWDiffusionModel(nn.Module):
         out = self.out(h)
 
         if self.out_tanh:
-            out = th.tanh(out * 0.5) * 1.5
+            out = th.tanh(out)
 
-        return out / 1.5
+        return out
